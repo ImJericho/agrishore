@@ -71,24 +71,23 @@ class DataProcessor:
         if year is None:
             year = config.LATEST_YEAR
         
-        year_col = f"Y{year}"
+        # Filter data for the specified year
+        year_data = df[df[config.TRADE_YEAR_COLUMN] == year].copy()
         
-        # If specified year doesn't exist, find the latest available year
-        if year_col not in df.columns:
-            available_years = [col for col in df.columns if col.startswith('Y')]
-            if not available_years:
-                return pd.DataFrame()
-            year_col = max(available_years)
+        if year_data.empty:
+            # If no data for specified year, get the latest available year
+            latest_year = df[config.TRADE_YEAR_COLUMN].max()
+            year_data = df[df[config.TRADE_YEAR_COLUMN] == latest_year].copy()
         
-        # Get trade data for the specified year
-        trade_data = df[['Partner', 'Element', year_col]].copy()
-        trade_data = trade_data.dropna()
+        if year_data.empty:
+            return pd.DataFrame()
         
-        # Group by partner and sum if multiple elements
-        trade_summary = trade_data.groupby(['Partner', 'Element'])[year_col].sum().reset_index()
+        # Group by partner and sum values for different elements (quantity and value)
+        trade_summary = year_data.groupby([config.TRADE_PARTNER_COLUMN, config.TRADE_ELEMENT_COLUMN])[config.TRADE_VALUE_COLUMN].sum().reset_index()
         
-        # Get top partners
-        top_partners = trade_summary.sort_values(year_col, ascending=False).head(n)
+        # Get top partners by total trade value
+        partner_totals = trade_summary.groupby(config.TRADE_PARTNER_COLUMN)[config.TRADE_VALUE_COLUMN].sum().reset_index()
+        top_partners = partner_totals.sort_values(config.TRADE_VALUE_COLUMN, ascending=False).head(n)
         
         return top_partners
     

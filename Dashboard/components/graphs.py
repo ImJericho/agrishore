@@ -17,39 +17,52 @@ class GraphGenerator:
         # Process import data
         if not trade_data['imports'].empty:
             imports = trade_data['imports']
-            year_col = f"Y{config.LATEST_YEAR}"
-            if year_col in imports.columns:
-                import_partners = imports.groupby('Partner')[year_col].sum().reset_index()
-                import_partners = import_partners.sort_values(year_col, ascending=False).head(10)
+            # Get latest year data
+            latest_year = imports[config.TRADE_YEAR_COLUMN].max()
+            import_latest = imports[imports[config.TRADE_YEAR_COLUMN] == latest_year]
+            
+            if not import_latest.empty:
+                import_partners = import_latest.groupby(config.TRADE_PARTNER_COLUMN)[config.TRADE_VALUE_COLUMN].sum().reset_index()
+                import_partners = import_partners.sort_values(config.TRADE_VALUE_COLUMN, ascending=False).head(10)
                 
                 fig.add_trace(go.Choropleth(
-                    locations=import_partners['Partner'],
-                    z=import_partners[year_col],
+                    locations=import_partners[config.TRADE_PARTNER_COLUMN],
+                    z=import_partners[config.TRADE_VALUE_COLUMN],
                     locationmode='country names',
                     colorscale='Blues',
                     name='Imports',
-                    hovertemplate='<b>%{location}</b><br>Import Value: %{z}<extra></extra>'
+                    hovertemplate='<b>%{location}</b><br>Import Value: %{z:,.0f}<extra></extra>'
                 ))
         
         # Process export data
         if not trade_data['exports'].empty:
             exports = trade_data['exports']
-            year_col = f"Y{config.LATEST_YEAR}"
-            if year_col in exports.columns:
-                export_partners = exports.groupby('Partner')[year_col].sum().reset_index()
-                export_partners = export_partners.sort_values(year_col, ascending=False).head(10)
+            # Get latest year data
+            latest_year = exports[config.TRADE_YEAR_COLUMN].max()
+            export_latest = exports[exports[config.TRADE_YEAR_COLUMN] == latest_year]
+            
+            if not export_latest.empty:
+                export_partners = export_latest.groupby(config.TRADE_PARTNER_COLUMN)[config.TRADE_VALUE_COLUMN].sum().reset_index()
+                export_partners = export_partners.sort_values(config.TRADE_VALUE_COLUMN, ascending=False).head(10)
                 
                 fig.add_trace(go.Choropleth(
-                    locations=export_partners['Partner'],
-                    z=export_partners[year_col],
+                    locations=export_partners[config.TRADE_PARTNER_COLUMN],
+                    z=export_partners[config.TRADE_VALUE_COLUMN],
                     locationmode='country names',
                     colorscale='Reds',
                     name='Exports',
-                    hovertemplate='<b>%{location}</b><br>Export Value: %{z}<extra></extra>'
+                    hovertemplate='<b>%{location}</b><br>Export Value: %{z:,.0f}<extra></extra>'
                 ))
         
+        # Get the actual latest year from data
+        actual_year = config.LATEST_YEAR
+        if not trade_data['imports'].empty:
+            actual_year = trade_data['imports'][config.TRADE_YEAR_COLUMN].max()
+        elif not trade_data['exports'].empty:
+            actual_year = trade_data['exports'][config.TRADE_YEAR_COLUMN].max()
+        
         fig.update_layout(
-            title=f"India's {crop} Trade Partners ({config.LATEST_YEAR})",
+            title=f"India's {crop} Trade Partners ({actual_year})",
             geo=dict(
                 showframe=False,
                 showcoastlines=True,
@@ -151,9 +164,11 @@ class GraphGenerator:
                 x=0.5, y=0.5, showarrow=False
             )
         
-        year_col = f"Y{config.LATEST_YEAR}"
+        # Get latest year data
+        latest_year = trade_data[config.TRADE_YEAR_COLUMN].max()
+        year_data = trade_data[trade_data[config.TRADE_YEAR_COLUMN] == latest_year]
         
-        if year_col not in trade_data.columns:
+        if year_data.empty:
             return go.Figure().add_annotation(
                 text="No recent data available", 
                 xref="paper", yref="paper",
@@ -161,20 +176,20 @@ class GraphGenerator:
             )
         
         # Group by partner and sum values
-        trade_summary = trade_data.groupby('Partner')[year_col].sum().reset_index()
-        trade_summary = trade_summary.sort_values(year_col, ascending=False).head(10)
+        trade_summary = year_data.groupby(config.TRADE_PARTNER_COLUMN)[config.TRADE_VALUE_COLUMN].sum().reset_index()
+        trade_summary = trade_summary.sort_values(config.TRADE_VALUE_COLUMN, ascending=False).head(10)
         
         fig = go.Figure(data=[
             go.Pie(
-                labels=trade_summary['Partner'],
-                values=trade_summary[year_col],
+                labels=trade_summary[config.TRADE_PARTNER_COLUMN],
+                values=trade_summary[config.TRADE_VALUE_COLUMN],
                 hole=0.3,
                 hovertemplate='<b>%{label}</b><br>Value: %{value:,.0f}<br>Percentage: %{percent}<extra></extra>'
             )
         ])
         
         fig.update_layout(
-            title=f"India's {crop} {trade_type} Partners ({config.LATEST_YEAR})",
+            title=f"India's {crop} {trade_type} Partners ({latest_year})",
             height=500
         )
         
@@ -185,36 +200,51 @@ class GraphGenerator:
         """Create combined bar chart showing both imports and exports."""
         fig = go.Figure()
         
-        year_col = f"Y{config.LATEST_YEAR}"
-        
         # Process imports
-        if not trade_data['imports'].empty and year_col in trade_data['imports'].columns:
-            imports = trade_data['imports'].groupby('Partner')[year_col].sum().reset_index()
-            imports = imports.sort_values(year_col, ascending=False).head(10)
+        if not trade_data['imports'].empty:
+            imports = trade_data['imports']
+            latest_year = imports[config.TRADE_YEAR_COLUMN].max()
+            import_latest = imports[imports[config.TRADE_YEAR_COLUMN] == latest_year]
             
-            fig.add_trace(go.Bar(
-                name='Imports',
-                x=imports['Partner'],
-                y=imports[year_col],
-                marker_color='lightblue',
-                hovertemplate='<b>%{x}</b><br>Imports: %{y:,.0f}<extra></extra>'
-            ))
+            if not import_latest.empty:
+                import_partners = import_latest.groupby(config.TRADE_PARTNER_COLUMN)[config.TRADE_VALUE_COLUMN].sum().reset_index()
+                import_partners = import_partners.sort_values(config.TRADE_VALUE_COLUMN, ascending=False).head(10)
+                
+                fig.add_trace(go.Bar(
+                    name='Imports',
+                    x=import_partners[config.TRADE_PARTNER_COLUMN],
+                    y=import_partners[config.TRADE_VALUE_COLUMN],
+                    marker_color='lightblue',
+                    hovertemplate='<b>%{x}</b><br>Imports: %{y:,.0f}<extra></extra>'
+                ))
         
         # Process exports
-        if not trade_data['exports'].empty and year_col in trade_data['exports'].columns:
-            exports = trade_data['exports'].groupby('Partner')[year_col].sum().reset_index()
-            exports = exports.sort_values(year_col, ascending=False).head(10)
+        if not trade_data['exports'].empty:
+            exports = trade_data['exports']
+            latest_year = exports[config.TRADE_YEAR_COLUMN].max()
+            export_latest = exports[exports[config.TRADE_YEAR_COLUMN] == latest_year]
             
-            fig.add_trace(go.Bar(
-                name='Exports',
-                x=exports['Partner'],
-                y=exports[year_col],
-                marker_color='lightcoral',
-                hovertemplate='<b>%{x}</b><br>Exports: %{y:,.0f}<extra></extra>'
-            ))
+            if not export_latest.empty:
+                export_partners = export_latest.groupby(config.TRADE_PARTNER_COLUMN)[config.TRADE_VALUE_COLUMN].sum().reset_index()
+                export_partners = export_partners.sort_values(config.TRADE_VALUE_COLUMN, ascending=False).head(10)
+                
+                fig.add_trace(go.Bar(
+                    name='Exports',
+                    x=export_partners[config.TRADE_PARTNER_COLUMN],
+                    y=export_partners[config.TRADE_VALUE_COLUMN],
+                    marker_color='lightcoral',
+                    hovertemplate='<b>%{x}</b><br>Exports: %{y:,.0f}<extra></extra>'
+                ))
+        
+        # Get actual year from data
+        actual_year = config.LATEST_YEAR
+        if not trade_data['imports'].empty:
+            actual_year = trade_data['imports'][config.TRADE_YEAR_COLUMN].max()
+        elif not trade_data['exports'].empty:
+            actual_year = trade_data['exports'][config.TRADE_YEAR_COLUMN].max()
         
         fig.update_layout(
-            title=f"India's {crop} Trade Overview ({config.LATEST_YEAR})",
+            title=f"India's {crop} Trade Overview ({actual_year})",
             xaxis_title="Country",
             yaxis_title="Trade Value",
             barmode='group',

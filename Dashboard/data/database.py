@@ -72,17 +72,21 @@ class DatabaseManager:
             with self.get_connection() as conn:
                 # Import partners (countries India imports from)
                 import_query = f"""
-                SELECT Reporter Countries, Partner Countries, Element, {', '.join(config.YEAR_COLUMNS)}
+                SELECT {config.TRADE_REPORTER_COLUMN}, {config.TRADE_PARTNER_COLUMN}, 
+                       {config.TRADE_ELEMENT_COLUMN}, {config.TRADE_YEAR_COLUMN}, {config.TRADE_VALUE_COLUMN}
                 FROM {config.TRADE_TABLE} 
-                WHERE Item = ? AND Reporter = 'India' AND Element LIKE '%Import%'
+                WHERE {config.TRADE_ITEM_COLUMN} = ? AND {config.TRADE_REPORTER_COLUMN} = 'India' 
+                AND {config.TRADE_ELEMENT_COLUMN} LIKE '%Import%'
                 """
                 imports = pd.read_sql_query(import_query, conn, params=[crop])
                 
                 # Export partners (countries India exports to)
                 export_query = f"""
-                SELECT Reporter Countries, Partner Countries, Element, {', '.join(config.YEAR_COLUMNS)}
+                SELECT {config.TRADE_REPORTER_COLUMN}, {config.TRADE_PARTNER_COLUMN}, 
+                       {config.TRADE_ELEMENT_COLUMN}, {config.TRADE_YEAR_COLUMN}, {config.TRADE_VALUE_COLUMN}
                 FROM {config.TRADE_TABLE} 
-                WHERE Item = ? AND Reporter = 'India' AND Element LIKE '%Export%'
+                WHERE {config.TRADE_ITEM_COLUMN} = ? AND {config.TRADE_REPORTER_COLUMN} = 'India' 
+                AND {config.TRADE_ELEMENT_COLUMN} LIKE '%Export%'
                 """
                 exports = pd.read_sql_query(export_query, conn, params=[crop])
                 
