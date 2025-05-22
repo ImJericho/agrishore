@@ -21,8 +21,8 @@ TOP_N_COUNTRIES = 10
 TRADE_YEAR_COLUMN = "Year"
 TRADE_VALUE_COLUMN = "Value"
 TRADE_ELEMENT_COLUMN = "Element"
-TRADE_REPORTER_COLUMN = "Reporter Countries"
-TRADE_PARTNER_COLUMN = "Partner Countries"
+TRADE_REPORTER_COLUMN = "\"Reporter Countries\""
+TRADE_PARTNER_COLUMN = "\"Partner Countries\""
 TRADE_ITEM_COLUMN = "Item"
 TRADE_UNIT_COLUMN = "Unit"
 
